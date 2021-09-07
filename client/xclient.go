@@ -48,7 +48,6 @@ type XClient interface {
 	SetPlugins(plugins PluginContainer)
 	GetPlugins() PluginContainer
 	SetSelector(s Selector)
-	ConfigGeoSelector(latitude, longitude float64)
 	Auth(auth string)
 
 	Go(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error)
@@ -142,9 +141,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	filterByStateAndGroup(client.option.Group, servers)
 
 	client.servers = servers
-	if selectMode != Closest && selectMode != SelectByUser {
-		client.selector = newSelector(selectMode, servers)
-	}
+	client.selector = newSelector(selectMode, servers)
 
 	client.Plugins = &pluginContainer{}
 
@@ -179,9 +176,7 @@ func NewBidirectionalXClient(servicePath string, failMode FailMode, selectMode S
 	}
 	filterByStateAndGroup(client.option.Group, servers)
 	client.servers = servers
-	if selectMode != Closest && selectMode != SelectByUser {
-		client.selector = newSelector(selectMode, servers)
-	}
+	client.selector = newSelector(selectMode, servers)
 
 	client.Plugins = &pluginContainer{}
 
@@ -201,13 +196,6 @@ func (c *xClient) SetPlugins(plugins PluginContainer) {
 
 func (c *xClient) GetPlugins() PluginContainer {
 	return c.Plugins
-}
-
-// ConfigGeoSelector sets location of client's latitude and longitude,
-// and use newGeoSelector.
-func (c *xClient) ConfigGeoSelector(latitude, longitude float64) {
-	c.selector = newGeoSelector(c.servers, latitude, longitude)
-	c.selectMode = Closest
 }
 
 // Auth sets s token for Authentication.

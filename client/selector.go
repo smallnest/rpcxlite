@@ -2,11 +2,8 @@ package client
 
 import (
 	"context"
-	"math"
-	"math/rand"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/valyala/fastrand"
 )
@@ -148,87 +145,4 @@ func createWeighted(servers map[string]string) []*Weighted {
 	}
 
 	return ss
-}
-
-type geoServer struct {
-	Server    string
-	Latitude  float64
-	Longitude float64
-}
-
-// geoSelector selects servers based on location.
-type geoSelector struct {
-	servers   []*geoServer
-	Latitude  float64
-	Longitude float64
-	r         *rand.Rand
-}
-
-func newGeoSelector(servers map[string]string, latitude, longitude float64) Selector {
-	ss := createGeoServer(servers)
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return &geoSelector{servers: ss, Latitude: latitude, Longitude: longitude, r: r}
-}
-
-func (s geoSelector) Select(ctx context.Context, servicePath, serviceMethod string, args interface{}) string {
-	if len(s.servers) == 0 {
-		return ""
-	}
-
-	var server []string
-	min := math.MaxFloat64
-	for _, gs := range s.servers {
-		d := getDistanceFrom(s.Latitude, s.Longitude, gs.Latitude, gs.Longitude)
-		if d < min {
-			server = []string{gs.Server}
-			min = d
-		} else if d == min {
-			server = append(server, gs.Server)
-		}
-	}
-
-	if len(server) == 1 {
-		return server[0]
-	}
-
-	return server[s.r.Intn(len(server))]
-}
-
-func (s *geoSelector) UpdateServer(servers map[string]string) {
-	ss := createGeoServer(servers)
-	s.servers = ss
-}
-
-func createGeoServer(servers map[string]string) []*geoServer {
-	geoServers := make([]*geoServer, 0, len(servers))
-
-	for s, metadata := range servers {
-		if v, err := url.ParseQuery(metadata); err == nil {
-			latStr := v.Get("latitude")
-			lonStr := v.Get("longitude")
-
-			if latStr == "" || lonStr == "" {
-				continue
-			}
-
-			lat, err := strconv.ParseFloat(latStr, 64)
-			if err != nil {
-				continue
-			}
-			lon, err := strconv.ParseFloat(lonStr, 64)
-			if err != nil {
-				continue
-			}
-
-			geoServers = append(geoServers, &geoServer{Server: s, Latitude: lat, Longitude: lon})
-
-		}
-	}
-
-	return geoServers
-}
-
-// weightedICMPSelector selects servers with ping result.
-type weightedICMPSelector struct {
-	servers []*Weighted
 }

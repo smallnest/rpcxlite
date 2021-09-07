@@ -81,20 +81,6 @@ func (c *OneClient) GetPlugins() PluginContainer {
 	return c.Plugins
 }
 
-// ConfigGeoSelector sets location of client's latitude and longitude,
-// and use newGeoSelector.
-func (c *OneClient) ConfigGeoSelector(latitude, longitude float64) {
-	c.selectMode = Closest
-	c.latitude = latitude
-	c.longitude = longitude
-
-	c.mu.RLock()
-	for _, v := range c.xclients {
-		v.ConfigGeoSelector(latitude, longitude)
-	}
-	c.mu.RUnlock()
-}
-
 // Auth sets s token for Authentication.
 func (c *OneClient) Auth(auth string) {
 	c.auth = auth
@@ -157,10 +143,6 @@ func (c *OneClient) newXClient(servicePath string) (xclient XClient, err error) 
 
 	if s, ok := c.selectors[servicePath]; ok {
 		xclient.SetSelector(s)
-	}
-
-	if c.selectMode == Closest {
-		xclient.ConfigGeoSelector(c.latitude, c.longitude)
 	}
 
 	if c.auth != "" {
